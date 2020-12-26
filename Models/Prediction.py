@@ -80,11 +80,9 @@ class MainPrediction(nn.Module):
 
 	
 	def forward(self, input, rec_codes, conf_codes):
-		#print(input.shape)
 
 		input = torch.cat((input, rec_codes, conf_codes), 1)
 
-		#print(input.shape)
 
 		exhaus_codes = self.exhaustivenss_codes(input)
 		subj_codes = self.subj_codes(input)

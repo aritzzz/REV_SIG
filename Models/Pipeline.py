@@ -36,19 +36,17 @@ class Pipeline(nn.Module):
 		Rp, Pr, Rc = self.cross_attention(paper, review)
 
 		out_reviews = self.contextor(review.transpose(1,2))
-		#print(out_reviews.shape)
+
 		out_Rp = self.contextor(Rp)
 		out_Pr = self.contextor(Pr)
 		out_Rc = self.contextor(Rc)
-		#print(out_Rp.shape, out_Pr.shape, out_Rc.shape)
+		
 		out = torch.cat((out_reviews, out_Rp, out_Pr, out_Rc), dim=1)
 
 		rec_codes = self.rec_codes(out)
 		conf_codes = self.conf_codes(out)
 
 		# predictions = self.scaffold_predictor(rec_codes.view(out.shape[0], -1), conf_codes.view(out.shape[0], -1))
-		#return predictions
-		#print(out.shape)
 		return out, rec_codes, conf_codes
 
 

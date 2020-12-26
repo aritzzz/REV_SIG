@@ -12,11 +12,9 @@ class CrossAttention(nn.Module):
 
 		self.in_features = in_features
 		self.out_features = out_features
-		#self.linear1 = nn.Linear(768, 1024, bias=False)
 
 		self.linear1 = nn.Linear(self.in_features, self.out_features, bias=True)
 		self.relu = nn.ReLU()
-		#self.init_weights()
 
 
 	def forward(self, paper, review):
@@ -32,7 +30,6 @@ class CrossAttention(nn.Module):
 		Affinity = torch.bmm(review_linear, paper_linear.transpose(1,2))/(np.sqrt(dim)) #shape = (_, R, P)
 		C = F.softmax(Affinity, dim=1)  #normalized across columns
 		Rp = torch.sum(review.unsqueeze(-1)*C.unsqueeze(2), dim=-1)
-		#print(C.shape, paper.shape)
 		Pr = torch.bmm(C, paper)
 		Rc = torch.cat((review, Rp, Pr), dim=1)
 
