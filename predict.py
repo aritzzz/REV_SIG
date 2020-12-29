@@ -80,8 +80,10 @@ class Prepare(object):
 		return cls(paper_content, review_contents, recommendations, confidences)
 	
 	def Embed(self):
+		ret = []
 		for i,review in enumerate(self.reviews):
-			return Embeddings(sent_tokenize(preprocess(self.paper)), [sent_tokenize(preprocess(review))]), self.recs[i], self.confs[i], preprocess(review)
+				ret.append((Embeddings(sent_tokenize(preprocess(self.paper)), [sent_tokenize(preprocess(review))]), self.recs[i], self.confs[i], preprocess(review)))
+		return ret
 
 	@staticmethod
 	def get_paper_content(paper_dict):
@@ -105,9 +107,11 @@ if __name__ == "__main__":
 	ID = sys.argv[2]
 	ckp_path = sys.argv[3]
 	data = Prepare.fromJson(path, ID)
-	(paper, review), rec, conf, rev_txt = data.Embed()
-	model = REVSIGModel.Initialize(ckp_path)
-	predictions = model.predict(paper, review)
-	predictions['Actual REC'], predictions['Actual CONF'], predictions['comments'] = rec, conf, rev_txt
-	print(predictions)
+	ls = data.Embed()
+	for rev in ls:
+		(paper, review), rec, conf, rev_txt = rev
+		model = REVSIGModel.Initialize(ckp_path)
+		predictions = model.predict(paper, review)
+		predictions['Actual REC'], predictions['Actual CONF'], predictions['comments'] = rec, conf, rev_txt
+		print(predictions)
 	
