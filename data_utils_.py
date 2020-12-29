@@ -312,8 +312,8 @@ if __name__ == "__main__":
 	print(len(mainloader), len(scaffoldloader), len(testloader))
 	for i, d in enumerate(zip(*(mainloader, scaffoldloader, testloader)), 0):
 		main, scaffold, test = d
-		print(main)
-		print(scaffold)
-		print(test)
+		print(main[0].shape, main[1].shape)
+		print(scaffold[0].shape, scaffold[1].shape)
+		print(test[0].shape, test[1].shape)
 		break
 		

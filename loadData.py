@@ -43,6 +43,7 @@ def affinity_matrix(paper_emb, reviews_emb):
 
 
 def Embeddings(paper_sent, reviews_sents, test = False, write=False):
+    #print(len(paper_sent), len(reviews_sents))
     reviews_sents.extend([paper_sent])
     embeddings = Encode(reviews_sents)
     if test:
