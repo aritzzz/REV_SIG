@@ -153,9 +153,9 @@ class RevSigData(Dataset):
 		self.data = os.listdir(path)[:self.slice]
 		self.mode = mode
 		if self.mode == 'SCAFFOLDS':
-			self.max_paper_sentences, self.max_review_sentences = 790, 790 #self.forTransform()
+			self.max_paper_sentences, self.max_review_sentences = self.forTransform() # 790, 790
 		else:
-			self.max_paper_sentences, self.max_review_sentences, self.sig_min, self.sig_max = 790, 790, np.array([0.05428571,0.93013972,-0.99966815]), np.array([33.26288336,252.25067107,0.99966679])#self.forTransform()
+			self.max_paper_sentences, self.max_review_sentences, self.sig_min, self.sig_max = self.forTransform() #790, 790, np.array([0.05428571,0.93013972,-0.99966815]), np.array([33.26288336,252.25067107,0.99966679])#
 		
 		self.transform = transform
 		self.SigTransform = sigtx
@@ -264,7 +264,7 @@ class RevSigData(Dataset):
 
 
 
-def getLoaders(main_task_path = './Data/SignData/train_data', scaffold_task_path = './Data/2018/train_data', batch_size=8, slice=[-1, -1, -1], test_path='./Data/SignData/test_data'):
+def getLoaders(main_task_path = './Data/SignData/train_data', scaffold_task_path = './Data/2019/train_data', batch_size=8, slice=[-1, -1, -1], test_path='./Data/SignData/test_data'):
 	print('Reading the Main Task Dataset...')
 	main_task_dataset = RevSigData(main_task_path, mode='MAIN', slice_=slice[0], transform=Transform(), sigtx=ScaleSigScores())
 	#main_task_dataset = dataset.readData(main_task_path, Transform(), mode='MAIN', n=slice[0])

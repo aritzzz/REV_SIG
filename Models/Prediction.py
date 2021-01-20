@@ -84,6 +84,8 @@ class MainPrediction(nn.Module):
 		input = torch.cat((input, rec_codes, conf_codes), 1)
 
 
+		print("In main Prediction: input shape {}, rec_codes shape {}, conf_codes shape".format(input.shape, rec_codes.shape, conf_codes.shape))
+
 		exhaus_codes = self.exhaustivenss_codes(input)
 		subj_codes = self.subj_codes(input)
 		intense_codes = self.intensity_codes(input)

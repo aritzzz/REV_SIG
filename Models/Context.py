@@ -13,14 +13,15 @@ class Context(nn.Module):
         self.linear = nn.Linear(self.in_features, self.out_features)
         self.codes = nn.Linear(self.out_features,self.ncodes, bias=False)
         self.act = nn.ReLU()
+        self.wts = None
 
     def forward(self, review): #review shape = (bsz, dim, seq_len)
         rev_repr = self.act((self.linear(review)))
 
         wts =  F.softmax(self.codes(rev_repr), dim=1) #shape = (bsz, 512, 3)
-        wts = wts.unsqueeze(-1)
+        self.wts = wts.unsqueeze(-1)
         rev_repr = rev_repr.unsqueeze(2)
-        temp = wts*rev_repr
+        temp = self.wts*rev_repr
         contexts = torch.sum(temp, dim=1)
         return contexts
 

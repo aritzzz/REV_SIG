@@ -16,12 +16,23 @@ from Models import Pipeline, MTLoss, Prediction #CrossAttention, Context
 from types import SimpleNamespace
 
 
+class Transform(object):
+	def __init__(self):
+		pass
+	def __call__(self, array, max_sents):
+		if max_sents < array.shape[0]:
+			return torch.from_numpy(array[:max_sents,:])
+		else:
+			return torch.from_numpy(np.pad(array, [(0, max_sents - array.shape[0]), (0,0)], mode = 'constant', constant_values = 0.0))
+
+
 
 class REVSIGModel(object):
 	def __init__(self, main_model, main_task_predictor, scaffold_task_predictor):
 		self.model = main_model
 		self.main_task_predictor = main_task_predictor
 		self.scaffold_task_predictor = scaffold_task_predictor
+		self.max_paper_sentences, self.max_review_sentences = 790, 790
 
 	@classmethod
 	def Initialize(cls, checkpoint_path):
@@ -36,12 +47,19 @@ class REVSIGModel(object):
 		scaffold_task_predictor.load_state_dict(checkpoint['scaffold_state_dict'])
 		return cls(model, main_task_predictor, scaffold_task_predictor)
 
+	
 	def predict(self, paper_embed, review_embed):
-		paper, review = torch.from_numpy(paper_embed).unsqueeze(0), torch.from_numpy(review_embed)
-		paper, review = paper.transpose(1,2).float().to(self.device),review.transpose(1,2).float().to(self.device)
-		out, rec_codes, conf_codes = self.model(paper, review)
-		rec_preds, conf_preds = self.scaffold_task_predictor(rec_codes.view(out.shape[0], -1), conf_codes.view(out.shape[0], -1))
-		ex_preds, subj_preds, intensity_preds = self.main_task_predictor(out, rec_codes, conf_codes)
+		with torch.no_grad():
+			print(paper_embed.shape, review_embed.shape)
+			paper = Transform()(paper_embed, self.max_paper_sentences)
+			review =  Transform()(review_embed.squeeze(0), self.max_review_sentences)
+			print(paper.shape, review.shape)
+			paper, review = paper.unsqueeze(0), review.unsqueeze(0)
+			print(paper.shape, review.shape)
+			paper, review = paper.transpose(1,2).float().to(self.device),review.transpose(1,2).float().to(self.device)
+			out, rec_codes, conf_codes = self.model(paper, review)
+			rec_preds, conf_preds = self.scaffold_task_predictor(rec_codes.view(out.shape[0], -1), conf_codes.view(out.shape[0], -1))
+			ex_preds, subj_preds, intensity_preds = self.main_task_predictor(out, rec_codes, conf_codes)
 
 		return {'Recommendation': np.round(rec_preds.item(), 3), 'Confidence': np.round(conf_preds.item(), 3),\
 			'Exhaustive': np.round(ex_preds.item(), 3), 'Aspectual Score': np.round(subj_preds.item(), 3), 'Intensity': np.round(intensity_preds.item(), 3)}
@@ -93,8 +111,8 @@ class Prepare(object):
 			content = paper_dict.get('title', '') + " "
 		content = paper_dict.get('abstractText', '')
 		for section in paper_dict['sections']:
-			if section['heading'] != None:
-				content = content + " " +  section['text']
+			#if section['heading'] != None:
+			content = content + " " +  section['text']
 		content = re.sub("\n([0-9]*\n)+", "\n", content)
 		return content
 

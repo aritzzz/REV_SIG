@@ -1,0 +1,259 @@
+{
+  "name" : "Hyp-JJJRW.pdf",
+  "metadata" : {
+    "source" : "CRF",
+    "title" : null,
+    "authors" : [ ],
+    "emails" : [ ],
+    "sections" : [ {
+      "heading" : "1 INTRODUCTION",
+      "text" : "Deep neural networks now rival human performance in many complex classification tasks, such as image recognition. However, these classification networks are different from human brains in some basic ways. First of all, the mammalian cortex has many feed-back connections that project in the direction opposite the sensory stream (Bullier et al., 1988). Moreover, these feed-back connections are implicated in the processing of sensory input, and seem to enable improved object/background contrast (Poort et al., 2012), and imagination (Reddy et al., 2011). Feed-back connections are also hypothesized to be involved in generating predictions in the service of perceptual decision making (Summerfield & De Lange, 2014).\nHumans (and presumably other mammals) are also less susceptible to being fooled by ambiguous or adversarial inputs. Deep neural networks have been shown to be vulnerable to adversarial examples (Szegedy et al., 2014; Goodfellow et al., 2015). Slight modifications to an input can cause the neural network to misclassify it, sometimes with great confidence! Humans do not get fooled as easily, leading us to wonder if the feed-back, generative nature of real mammalian brains contributes to accurate classification.\nIn pursuit of that research, we wish to augment classification networks so that they are capable of both recognition (in the feed-forward direction) and reconstruction (in the feed-back direction). We want to build networks that are both classifiers and generative.\nThe nature of a classifier network is that it throws away most of the information, keeping only what is necessary to make accurate classifications. Simply adding feed-back connections to the network will not be enough to generate specific examples of the input – only a generic class archetype. But what if we combine the features of a classifier network and an autoencoder network by adding a “style memory” to the top layer of the network? The top layer would then consist of a classification component as well as a collection of neurons that are not constrained by any target classes.\nWe hypothesized that adding a style memory to the top layer of a deep autoencoder would give us the best of both worlds, allowing the classification neurons to contribute the class of the input, while the style memory would record additional information about the encoded input – presumably information not encoded by the classification neurons. The objective of our network is to minimize both classification and reconstruction losses so that the network can perform both classification and reconstruction effectively. As a proof of concept, we report on a number of experiments with MNIST and EMNIST that investigate the properties of this style memory."
+    }, {
+      "heading" : "2 RELATED WORK",
+      "text" : "Others have developed neural architectures that encode both the class and style of digits to enable reconstruction. Luo et al. (2017) recently introduced a method called bidirectional backpropagation. Their network is generative because it has feed-back connections that project down from the top (soft-max) layer. A digit class can be chosen at the top layer, and the feed-back connections render a digit of the desired class in the bottom layer (as an image). However, the network always renders the same, generic sample of the class, and does not reconstruct specific samples from the data.\nNetworks that have the capacity to generate images have been shown to learn meaningful features. Previous work (Hinton, 2007) showed that in order to recognize images, the network needs to first learn to generate images. Salakhutdinov & Hinton (2009) showed that a network consisting of stacked Restricted Boltzmann Machines (RBMs) learns good generative models, effective for pretraining a classifier network. RBMs are stochastic in nature, so while they can generate different inputs, they are not used to generate a specific sample of input. Bengio et al. (2006) also demonstrated that autoencoders pre-trained in a greedy manner also lead to better classifier networks. Both (Hinton et al., 2006) and (Bengio et al., 2006) use tied weights, where the feed-back weight matrices are simply the transpose of the feed-forward weights; this solution is not biologically feasible. These findings have inspired other successful models such as stacked denoising autoencoders (Vincent et al., 2010), which learn to reconstruct the original input image given a noise-corrupted input image.\nLastly, Salakhutdinov & Hinton (2007) also showed another method to map an input to a lower dimensional space that minimizes within-class distance of the input. They first pre-trained a network as RBMs, and then “unrolled” the network to form a deep autoencoder. The network was then fine-tuned by performing nonlinear neighbourhood component analysis (NCA) between the low-dimensional representations of inputs that have the same class. They were able to separate the class-relevant and class-irrelevant parts by using only 60% of the lower-dimensional code units when performing nonlinear NCA, but all the codes were used to perform reconstruction. As a result, their network was able to minimize within-class distance in the lower-dimensional space while maintaining good reconstruction. Inference was then performed by using K-nearest neighbour in that lower-dimensional space. Our method is similar, but our top layer includes an explicit classification vector alongside the class-agnostic style memory."
+    }, {
+      "heading" : "3 METHOD",
+      "text" : ""
+    }, {
+      "heading" : "3.1 MODEL DESCRIPTION",
+      "text" : "Our bidirectional network consists of an input layer, convolutional layers, fully connected layers, and an output layer. However, the output layer is augmented; in addition to classifier neurons (denoted by y in Fig. 1), it also includes style-memory neurons (denoted m in Fig. 1). A standard classifier network maps x ∈ X → y ∈ Y , where the dimension of Y is usually much smaller than the dimension of X . The feed-forward connections of our augmented network map x ∈ X → (y,m) ∈ Y ×M . The output y is the classification vector (softmax). The output m is the style memory, meant to encode information about the particular form of an input. For the example of MNIST, the classification vector might represent that the digit is a ‘2’, while the style memory records that the ‘2’ was written on a slant, and with a loop in the bottom-left corner.\nA classifier network can be trained as a deep autoencoder network. However, the decoder will only be able to generate a single, generic element of a given class. By adding a style memory in the output layer, the network will be able to learn to generate a variety of different renderings of a particular class."
+    }, {
+      "heading" : "3.2 TRAINING",
+      "text" : "We trained the network following a standard training procedure for deep autoencoders, depicted in Fig. 2. For the input layer, we follow the work from Vincent et al. (2010) by injecting small additive Gaussian noise to the input.\nThe objective for our network’s top layer is to jointly minimize two loss functions. The first loss function is the classifier loss Ly , which is a categorical cross-entropy loss function,\nLy(yt, y) = − ∑\nx yt log(y) , (1)\nwhere yt is the target label, and y is the predicted label. The second loss function is the reconstruction loss between the input and its reconstruction. This reconstruction loss, denoted Lr, is the Euclidean distance between the input to the top layer, and the reconstruction of that input,\nLr(x̂, x) = ‖x̂− x‖2 , (2) where x̂ is the reconstruction of the input x, as shown in Fig. 2.\nOur goal is to find connection weights, W ∗, that minimize the combination of both loss functions in the last layer,\nW ∗ = argmin W ∑ x∈X Ly(yt, y) + α(Lr(x̂, x)) , (3)\nwhere W represents the parameters of the network, and α adjusts the weight of Lr."
+    }, {
+      "heading" : "4 EXPERIMENTS",
+      "text" : "We performed all experiments in this paper using digits from MNIST and letters from Extended MNIST (EMNIST) (Cohen et al., 2017) datasets, with an input dimensionality of 28 × 28 pixels. The networks used for the experiments have two convolutional layers and two fully connected layers. The first and second convolutional layers are made of 32 and 64 filters, respectively. The receptive fields of both convolutional layers are 5× 5 with a stride of 2, using ReLU activation functions. The fully connected layers FC1 and FC2 have 256 and 128 ReLU neurons, respectively.\nThe style memory consists of 16 logistic neurons, and the classifier vector contains either 10 or 26 softmax neurons, for MNIST or EMNIST, respectively. The reconstruction loss weight (α) was set to 0.05, and the optimization method used to train the network was Adam (Kingma & Ba, 2014) with a learning rate η of 0.00001 for 250 epochs. The network achieved 98.48% and 91.27% classification accuracy on the MNIST and EMNIST test sets, respectively."
+    }, {
+      "heading" : "4.1 RECONSTRUCTION USING STYLE MEMORY",
+      "text" : "The reconstructions produced by our network show that the network has the capacity to reconstruct a specific sample, rather than just a generic example from a specific class. Figures 3 and 4 show\nexamples of digit and letter reconstructions. Notice how the network has the ability to reconstruct different styles of a class, like the two different ‘4’s, two different ‘9’s, and two different ‘A’s. For each sample, the reconstruction mimics the style of the original character. Note that the digits and letters in both figures were correctly classified by the network."
+    }, {
+      "heading" : "4.2 RECONSTRUCTION OF MISCLASSIFIED SAMPLES",
+      "text" : "How do the softmax classification nodes and the style memory interact when a digit or letter is misclassified? The first column in Fig. 5 shows an example where the digit ‘3’ was misclassified as a ‘5’ with 71% confidence. The resulting reconstruction in the middle row looks more like a ‘5’ (although there is a hint of a ‘3’). However, correcting the softmax neurons to the one-hot ground truth label for ‘3’ changed the reconstruction to look more like a ‘3’, as shown in the bottom row of Fig. 5. Similar results were observed when we used letters from the EMNIST dataset, as shown in Fig. 6.\nWe believe that the generative abilities of these classifier networks enable it to identify misclassified inputs. If the reconstruction does not closely match the input, then it is likely that the input was misclassified. This idea forms the crux of how these networks might defend against being fooled by adversarial or ambiguous inputs."
+    }, {
+      "heading" : "4.3 STYLE MEMORY REPRESENTATION",
+      "text" : "To better understand what was being encoded in the style memory, we generated digits that were close together in the style memory space (16-dimensional) and compared them with digits that are close together in the image space (784-dimensional). The distance, in either space, was calculated using the Euclidean norm.\nFrom Fig. 7 and Fig. 8, we can observe that proximity in the style-memory space has different semantic meaning than proximity in the image space. Figure 7a, showing the 97 images that are closest to the ‘5’ image in the top-left corner, displays many digits that share common pixels. However, Fig. 7b, which shows the 97 digits with the closest style memories, displays digits that come from various different classes. Similarly, Fig. 7c shows many digits of class ‘3’, while Fig. 7d is less dominated by digit ‘3’.\nThere are 18 digits of ‘5’ in Fig. 7a, while there are only 13 digits of ‘5’ in Fig. 7b. However, Fig. 7a is actually dominated by ‘0’, even though the base digit is a ‘5’. There are 54 digits of ‘0’ in Fig. 7a, while there are only 25 digits of ‘0’ in Fig. 7b. Similarly, there are 76 digits of ‘3’ in Fig. 7c, while there are only 46 digits of ‘3’ in Fig. 7d. We also observed that the image distance between Fig. 7a and Fig. 7b increased from 8.6 to 9.3, while the style distance decreased from 1.2 to 0.98. The image distance between Fig. 7c and Fig. 7d also increased from 8.5 to 9.5, while the style distance decreased from 1.2 to 1.0.\nSimilarly, there are 52 letters of ‘S’ in Fig. 8a, while there are only 6 letters of ‘S’ in Fig. 8b. Furthermore, there are 47 letters of ‘P’ in Fig. 8c, while there are only 17 letters of ‘P’ in Fig. 8d. The image distance between Fig. 8a and Fig. 8b increased from 9.1 to 10.5, while the style distance decreased from 1.3 to 0.91. Lastly, The image distance between Fig. 8c and Fig. 8d also increased from 8.5 to 9.8, while the style distance decreased from 1.3 to 0.99.\nThese results show that style memory successfully separates some of the class information from the data, while not being fully class-agnostic."
+    }, {
+      "heading" : "4.4 STYLE MEMORY INTERPOLATION",
+      "text" : "In this experiment, we attempted to reconstruct a continuum of images that illustrate a gradual transformation between two different styles of the same character class. For example, we encoded two different digits for each MNIST class, as shown in Fig. 9. We then generated a sequence of\nimages that slowly evolve from one style to the other. We performed the interpolation by simply taking convex combinations of the two style memories, using\nm̂(λ) = λm1 + (1− λ)m2 , (4) where m1 and m2 denote the style memories. The interpolated style memory is denoted by m̂(λ), where λ ∈ [0, 1] denotes the interpolation coefficient. Figure 11 shows the interpolated digits and letters, illustrating that the generated images transform smoothly when the style memory is interpolated. The results of within-class interpolation suggest that style memory captures style information about how a digit was drawn. The figure also shows examples of attempted interpolations between incongruous letter forms (eg. ‘A’ to ‘a’, and ‘r’ to ‘R’). Not surprisingly, the interpolated characters are nonsensical in those cases.\nAn obvious experiment is to try transferring the style memory of one digit onto another digit class. Although not shown here, we observed that the style memory of a digit can, in some cases, be transferred to some other classes. However, in general, the reconstructions did not look like characters."
+    }, {
+      "heading" : "5 CONCLUSIONS AND FUTURE WORK",
+      "text" : "Classification networks do not typically maintain enough information to reconstruct the input; they do not have to. Their goal is to map high-dimensional inputs to a small number of classes, typically using a lower-dimensional vector representation. In order for a classification network to be capable of generating samples, additional information needs to be maintained. In this paper, we proposed the addition of “style memory” to the top layer of a classification network. The top layer is trained using a multi-objective optimization, trying to simultaneously minimize classification error and reconstruction loss.\nOur experiments suggest that the style memory encodes information that is largely disjoint from the classification vector. For example, proximity in image space yields digits that employ an overlapping set of pixels. However, proximity in style-memory space yielded a different set of digits.\nFor the style interpolation experiment, we generated images from a straight line in style-memory space. However, each position on this line generates a sample in image space – an image; it would be interesting to see what shape that 1-dimensional manifold takes in image space, and how it differs from straight-line interpolation in image space. However, the fact that we were able to interpolate digits and letters within the same class using novel style-memory activation patterns suggests that the style memory successfully encodes additional, abstract information about the encoded input.\nTo our knowledge, existing defence mechanisms to combat adversarial inputs do not involve the generative capacity of a network. Motivated by the results in Sec. 4.1, preliminary experiments that we have done suggest that treating perception as a two-way process, including both classification and reconstruction, is effective for guarding against being fooled by adversarial or ambiguous inputs. Continuing in this vein is left for future work.\nFinally, we saw that the network has a property where the reconstruction generated was affected both by the classification neurons and style memory. Inspired by how human perception is influenced by expectation (Summerfield & De Lange, 2014), we believe that this work opens up opportunities to create a classifier network that takes advantage of its generative capability to detect misclassifications. Moreover, predictive estimator networks might be a natural implementation for such feed-back networks (Xu et al., 2017; Summerfield & De Lange, 2014; Orchard & Castricato, 2017). Perception and inference could be the result of running the network in feed-forward and feed-back directions simultaneously, like in the wake-sleep approach (Hinton et al., 1995). These experiments are ongoing."
+    } ],
+    "references" : [ {
+      "title" : "Greedy layer-wise training of deep networks",
+      "author" : [ "Yoshua Bengio", "Pascal Lamblin", "Dan Popovici", "Hugo Larochelle" ],
+      "venue" : "In Proceedings of the 19th International Conference on Neural Information Processing Systems,",
+      "citeRegEx" : "Bengio et al\\.,? \\Q2006\\E",
+      "shortCiteRegEx" : "Bengio et al\\.",
+      "year" : 2006
+    }, {
+      "title" : "Physiological studies on the feedback connection to the striate cortex from cortical areas 18 and 19 of the cat",
+      "author" : [ "J Bullier", "ME McCourt", "GH Henry" ],
+      "venue" : "Experimental Brain Research,",
+      "citeRegEx" : "Bullier et al\\.,? \\Q1988\\E",
+      "shortCiteRegEx" : "Bullier et al\\.",
+      "year" : 1988
+    }, {
+      "title" : "EMNIST: an extension of MNIST to handwritten letters",
+      "author" : [ "Gregory Cohen", "Saeed Afshar", "Jonathan Tapson", "André van Schaik" ],
+      "venue" : null,
+      "citeRegEx" : "Cohen et al\\.,? \\Q2017\\E",
+      "shortCiteRegEx" : "Cohen et al\\.",
+      "year" : 2017
+    }, {
+      "title" : "Explaining and harnessing adversarial examples",
+      "author" : [ "Ian Goodfellow", "Jonathon Shlens", "Christian Szegedy" ],
+      "venue" : "In International Conference on Learning Representations,",
+      "citeRegEx" : "Goodfellow et al\\.,? \\Q2015\\E",
+      "shortCiteRegEx" : "Goodfellow et al\\.",
+      "year" : 2015
+    }, {
+      "title" : "Computational Neuroscience: Theoretical Insights into Brain Function, volume 165 of Progress in Brain",
+      "author" : [ "Geoffrey E. Hinton" ],
+      "venue" : "Research, pp",
+      "citeRegEx" : "Hinton.,? \\Q2007\\E",
+      "shortCiteRegEx" : "Hinton.",
+      "year" : 2007
+    }, {
+      "title" : "The ”Wake-Sleep",
+      "author" : [ "Geoffrey E Hinton", "Peter Dayan", "Brendan J Frey", "Radford M Neal" ],
+      "venue" : "Algorithm for Unsupervised Neural Networks. Science,",
+      "citeRegEx" : "Hinton et al\\.,? \\Q1995\\E",
+      "shortCiteRegEx" : "Hinton et al\\.",
+      "year" : 1995
+    }, {
+      "title" : "A fast learning algorithm for deep belief nets",
+      "author" : [ "Geoffrey E. Hinton", "Simon Osindero", "Yee Whye Teh" ],
+      "venue" : "Neural Computation,",
+      "citeRegEx" : "Hinton et al\\.,? \\Q2006\\E",
+      "shortCiteRegEx" : "Hinton et al\\.",
+      "year" : 2006
+    }, {
+      "title" : "Adam: A method for stochastic optimization",
+      "author" : [ "Diederik P. Kingma", "Jimmy Ba" ],
+      "venue" : "CoRR, abs/1412.6980,",
+      "citeRegEx" : "Kingma and Ba.,? \\Q2014\\E",
+      "shortCiteRegEx" : "Kingma and Ba.",
+      "year" : 2014
+    }, {
+      "title" : "Bidirectional backpropagation: Towards biologically plausible error signal transmission in neural networks",
+      "author" : [ "Hongyin Luo", "Jie Fu", "James R. Glass" ],
+      "venue" : null,
+      "citeRegEx" : "Luo et al\\.,? \\Q2017\\E",
+      "shortCiteRegEx" : "Luo et al\\.",
+      "year" : 2017
+    }, {
+      "title" : "Combating Adversarial Inputs Using a Predictive-Estimator Network",
+      "author" : [ "Jeff Orchard", "Louis Castricato" ],
+      "venue" : "In Proc. of the International Conference on Neural Information Processing, volume LNCS 10638,",
+      "citeRegEx" : "Orchard and Castricato.,? \\Q2017\\E",
+      "shortCiteRegEx" : "Orchard and Castricato.",
+      "year" : 2017
+    }, {
+      "title" : "The role of attention in figure-ground segregation in areas V1 and V4 of the visual cortex",
+      "author" : [ "Jasper Poort", "Florian Raudies", "Aurel Wannig", "Victor A F Lamme", "Heiko Neumann", "Pieter R. Roelfsema" ],
+      "venue" : null,
+      "citeRegEx" : "Poort et al\\.,? \\Q2012\\E",
+      "shortCiteRegEx" : "Poort et al\\.",
+      "year" : 2012
+    }, {
+      "title" : "Reading the mind’s eye: decoding category information during mental",
+      "author" : [ "Leila Reddy", "Naotsugu Tsuchiya", "Thomas Serre" ],
+      "venue" : "imagery. NeuroImage,",
+      "citeRegEx" : "Reddy et al\\.,? \\Q2011\\E",
+      "shortCiteRegEx" : "Reddy et al\\.",
+      "year" : 2011
+    }, {
+      "title" : "Deep Boltzmann machines",
+      "author" : [ "Ruslan Salakhutdinov", "Geoffrey Hinton" ],
+      "venue" : "Proceedings of the Twelth International Conference on Artificial Intelligence and Statistics,",
+      "citeRegEx" : "Salakhutdinov and Hinton.,? \\Q2009\\E",
+      "shortCiteRegEx" : "Salakhutdinov and Hinton.",
+      "year" : 2009
+    }, {
+      "title" : "Learning a nonlinear embedding by preserving class neighbourhood structure",
+      "author" : [ "Ruslan Salakhutdinov", "Geoffrey E Hinton" ],
+      "venue" : "In International Conference on Artificial Intelligence and Statistics,",
+      "citeRegEx" : "Salakhutdinov and Hinton.,? \\Q2007\\E",
+      "shortCiteRegEx" : "Salakhutdinov and Hinton.",
+      "year" : 2007
+    }, {
+      "title" : "Expectation in perceptual decision making: Neural and computational mechanisms",
+      "author" : [ "Christopher Summerfield", "Floris P. De Lange" ],
+      "venue" : "Nature Reviews Neuroscience,",
+      "citeRegEx" : "Summerfield and Lange.,? \\Q2014\\E",
+      "shortCiteRegEx" : "Summerfield and Lange.",
+      "year" : 2014
+    }, {
+      "title" : "Intriguing properties of neural networks",
+      "author" : [ "Christian Szegedy", "Wojciech Zaremba", "Ilya Sutskever", "Joan Bruna", "Dumitru Erhan", "Ian Goodfellow", "Rob Fergus" ],
+      "venue" : "In International Conference on Learning Representations,",
+      "citeRegEx" : "Szegedy et al\\.,? \\Q2014\\E",
+      "shortCiteRegEx" : "Szegedy et al\\.",
+      "year" : 2014
+    }, {
+      "title" : "Stacked denoising autoencoders: Learning useful representations in a deep network with a local denoising criterion",
+      "author" : [ "Pascal Vincent", "Hugo Larochelle", "Isabelle Lajoie", "Yoshua Bengio", "Pierre-Antoine Manzagol" ],
+      "venue" : "J. Mach. Learn. Res.,",
+      "citeRegEx" : "Vincent et al\\.,? \\Q2010\\E",
+      "shortCiteRegEx" : "Vincent et al\\.",
+      "year" : 2010
+    }, {
+      "title" : "Symmetric predictive estimator for biologically plausible neural learning",
+      "author" : [ "D. Xu", "A. Clappison", "C. Seth", "J. Orchard" ],
+      "venue" : "IEEE Transactions on Neural Networks and Learning Systems,",
+      "citeRegEx" : "Xu et al\\.,? \\Q2017\\E",
+      "shortCiteRegEx" : "Xu et al\\.",
+      "year" : 2017
+    } ],
+    "referenceMentions" : [ {
+      "referenceID" : 1,
+      "context" : "First of all, the mammalian cortex has many feed-back connections that project in the direction opposite the sensory stream (Bullier et al., 1988).",
+      "startOffset" : 124,
+      "endOffset" : 146
+    }, {
+      "referenceID" : 10,
+      "context" : "Moreover, these feed-back connections are implicated in the processing of sensory input, and seem to enable improved object/background contrast (Poort et al., 2012), and imagination (Reddy et al.",
+      "startOffset" : 144,
+      "endOffset" : 164
+    }, {
+      "referenceID" : 11,
+      "context" : ", 2012), and imagination (Reddy et al., 2011).",
+      "startOffset" : 25,
+      "endOffset" : 45
+    }, {
+      "referenceID" : 15,
+      "context" : "Deep neural networks have been shown to be vulnerable to adversarial examples (Szegedy et al., 2014; Goodfellow et al., 2015).",
+      "startOffset" : 78,
+      "endOffset" : 125
+    }, {
+      "referenceID" : 3,
+      "context" : "Deep neural networks have been shown to be vulnerable to adversarial examples (Szegedy et al., 2014; Goodfellow et al., 2015).",
+      "startOffset" : 78,
+      "endOffset" : 125
+    }, {
+      "referenceID" : 4,
+      "context" : "Previous work (Hinton, 2007) showed that in order to recognize images, the network needs to first learn to generate images.",
+      "startOffset" : 14,
+      "endOffset" : 28
+    }, {
+      "referenceID" : 6,
+      "context" : "Both (Hinton et al., 2006) and (Bengio et al.",
+      "startOffset" : 5,
+      "endOffset" : 26
+    }, {
+      "referenceID" : 0,
+      "context" : ", 2006) and (Bengio et al., 2006) use tied weights, where the feed-back weight matrices are simply the transpose of the feed-forward weights; this solution is not biologically feasible.",
+      "startOffset" : 12,
+      "endOffset" : 33
+    }, {
+      "referenceID" : 16,
+      "context" : "These findings have inspired other successful models such as stacked denoising autoencoders (Vincent et al., 2010), which learn to reconstruct the original input image given a noise-corrupted input image.",
+      "startOffset" : 92,
+      "endOffset" : 114
+    }, {
+      "referenceID" : 4,
+      "context" : "Luo et al. (2017) recently introduced a method called bidirectional backpropagation.",
+      "startOffset" : 0,
+      "endOffset" : 18
+    }, {
+      "referenceID" : 3,
+      "context" : "Previous work (Hinton, 2007) showed that in order to recognize images, the network needs to first learn to generate images. Salakhutdinov & Hinton (2009) showed that a network consisting of stacked Restricted Boltzmann Machines (RBMs) learns good generative models, effective for pretraining a classifier network.",
+      "startOffset" : 15,
+      "endOffset" : 154
+    }, {
+      "referenceID" : 0,
+      "context" : "Bengio et al. (2006) also demonstrated that autoencoders pre-trained in a greedy manner also lead to better classifier networks.",
+      "startOffset" : 0,
+      "endOffset" : 21
+    }, {
+      "referenceID" : 0,
+      "context" : "Bengio et al. (2006) also demonstrated that autoencoders pre-trained in a greedy manner also lead to better classifier networks. Both (Hinton et al., 2006) and (Bengio et al., 2006) use tied weights, where the feed-back weight matrices are simply the transpose of the feed-forward weights; this solution is not biologically feasible. These findings have inspired other successful models such as stacked denoising autoencoders (Vincent et al., 2010), which learn to reconstruct the original input image given a noise-corrupted input image. Lastly, Salakhutdinov & Hinton (2007) also showed another method to map an input to a lower dimensional space that minimizes within-class distance of the input.",
+      "startOffset" : 0,
+      "endOffset" : 577
+    }, {
+      "referenceID" : 16,
+      "context" : "For the input layer, we follow the work from Vincent et al. (2010) by injecting small additive Gaussian noise to the input.",
+      "startOffset" : 45,
+      "endOffset" : 67
+    }, {
+      "referenceID" : 2,
+      "context" : "We performed all experiments in this paper using digits from MNIST and letters from Extended MNIST (EMNIST) (Cohen et al., 2017) datasets, with an input dimensionality of 28 × 28 pixels.",
+      "startOffset" : 108,
+      "endOffset" : 128
+    }, {
+      "referenceID" : 17,
+      "context" : "Moreover, predictive estimator networks might be a natural implementation for such feed-back networks (Xu et al., 2017; Summerfield & De Lange, 2014; Orchard & Castricato, 2017).",
+      "startOffset" : 102,
+      "endOffset" : 177
+    }, {
+      "referenceID" : 5,
+      "context" : "Perception and inference could be the result of running the network in feed-forward and feed-back directions simultaneously, like in the wake-sleep approach (Hinton et al., 1995).",
+      "startOffset" : 157,
+      "endOffset" : 178
+    } ],
+    "year" : 2018,
+    "abstractText" : "Deep networks have shown great performance in classification tasks. However, the parameters learned by the classifier networks usually discard stylistic information of the input, in favour of information strictly relevant to classification. We introduce a network that has the capacity to do both classification and reconstruction by adding a “style memory” to the output layer of the network. We also show how to train such a neural network as a deep multi-layer autoencoder, jointly minimizing both classification and reconstruction losses. The generative capacity of our network demonstrates that the combination of style-memory neurons with the classifier neurons yield good reconstructions of the inputs when the classification is correct. We further investigate the nature of the style memory, and how it relates to composing digits and letters.",
+    "creator" : "LaTeX with hyperref package"
+  }
+}
